@@ -1,9 +1,9 @@
 /*:
-# Balloons for Swift 4
+# Balloons for Swift 4 (and 5)
 
 Balloons demo originally found on [Apple's Swift Blogs](https://developer.apple.com/swift/blog/?id=9)
 
-Requires Xcode 9.2 running on macOS Sierra or Newer
+Requires Xcode 9.2 running on macOS Sierra or Newer - Tested on Xcode 12.3 in Catalina
 */
 
 import SpriteKit
@@ -87,7 +87,7 @@ Add the array of textures to the timeline. You may need to scroll down in the ti
 let BalloonCategory: UInt32 = 1 << 1
 configureBalloonPhysics = { balloon in
     balloon.physicsBody = SKPhysicsBody(texture: balloon.texture!, size: balloon.size)
-    balloon.physicsBody!.linearDamping = 0.5
+    balloon.physicsBody!.linearDamping = 0.05
     balloon.physicsBody!.mass = 0.1
     balloon.physicsBody!.categoryBitMask = BalloonCategory
     balloon.physicsBody!.contactTestBitMask = BalloonCategory
