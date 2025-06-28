@@ -1,19 +1,26 @@
 /*:
-# Balloons for Swift 4
+# Balloons for Swift 6
 
-Balloons demo originally found on [Apple's Swift Blogs](https://developer.apple.com/swift/blog/?id=9)
+A SpriteKit playground demonstrating physics, actions, and Swift Concurrency with `@MainActor`.
 
-Requires Xcode 9.2 running on macOS Sierra or Newer
+Adapted from the original [Swift Blog demo](https://developer.apple.com/swift/blog/?id=9) and modernised for Swift 6.
+
+**Requirements**
+- Xcode 17 or later
+- macOS Sequoia (14.0) or newer
+- Swift 6 toolchain
 */
 
 import SpriteKit
 import PlaygroundSupport
 
 /*:
- This playground includes sample code to explore SpriteKit. The scene, derived from what was shown on stage at WWDC 2014, contains two cannons that each fire balloons at random intervals. When the balloons collide, they pop and disappear. In this playground, you’ll learn just how easy it is to create an engaging scene with custom motions and effects.
+## Overview
+This playground recreates the WWDC 2014 balloon-cannon demo using today’s best practices. Two cannons randomly fire balloons; when balloons collide, they pop. The project highlights how little code is needed to build an engaging SpriteKit scene and how Swift 6’s structured concurrency helps keep UI-related work on the main thread via `@MainActor`. The scene, derived from what was shown on stage at WWDC 2014, contains two cannons that each fire balloons at random intervals. When the balloons collide, they pop and disappear. In this playground, you’ll learn just how easy it is to create an engaging scene with custom motions and effects.
  
- As you change the code, you’ll see the effects live in the playground and you can have fun by changing and breaking things.
- 
+
+💡 *Live updates:* With the Live View visible (`Editor ▸ Live View`), every code change is re-built automatically so you can experiment freely.
+  
  - Note:
  \
  If you don’t see the Balloon scene, open the timeline editor by choosing View > Assistant Editor > Show Assistant Editor (or press Option-Command-Return). Or using Editor | Live View
@@ -25,6 +32,8 @@ import PlaygroundSupport
  The scene was loaded from a SpriteKit scene file, which we created in Xcode’s SpriteKit Level Designer. All resources, including scenes and image assets, have been embedded in the playground bundle and are available for us to use. You can add your own images in the bundle, too. Just right-click on the Balloons.playground file in the Finder and choose Show Package Contents.
  
  */
+
+// MARK: - Scene Setup
 
 let sceneView = SKView(frame: CGRect(x: 0, y: 0, width: 850, height: 638))
 let scene = SKScene(fileNamed: "GameScene")
@@ -52,6 +61,8 @@ Turn the gravity upside down by changing the `scene.physicsWorld.gravity` vector
  
 */
 
+// MARK: - Balloon Creation
+
 let images = [
     "blue", "heart-blue", "star-blue",
     "green", "star-green", "heart-pink",
@@ -61,7 +72,10 @@ let images = [
 ]
 let textures: [SKTexture] = images.map { SKTexture(imageNamed: "balloon-\($0)") }
 
+/// Additional physics configuration injected by the scene after creating each balloon.
 var configureBalloonPhysics: ((_ balloon: SKSpriteNode) -> Void)?
+
+/// Creates a random balloon *on the main thread*.
 @MainActor func createRandomBalloon() -> SKSpriteNode {
     let choice = Int(arc4random_uniform(UInt32(textures.count)))
     let balloon = SKSpriteNode(texture: textures[choice])
@@ -84,6 +98,11 @@ Add the array of textures to the timeline. You may need to scroll down in the ti
  
 */
 
+/*:
+> **Tip:** Click the grey circle in the gutter to pin any variable—`textures`, for example—to the timeline for visual inspection.
+*/
+
+// MARK: - Physics Categories
 let BalloonCategory: UInt32 = 1 << 1
 configureBalloonPhysics = { balloon in
     balloon.physicsBody = SKPhysicsBody(texture: balloon.texture!, size: balloon.size)
@@ -108,8 +127,15 @@ We still need to position the balloon and add it to the scene. We want balloons 
  
  */
 
+/*:
+Try commenting out the `contactTestBitMask` assignment above—balloons will pass through each other silently because no contact delegate message is generated.
+*/
+
+// MARK: - Display & Fire
+
 let origin=CGPoint(x: 0, y: 0)
 
+/// Adds the balloon to the scene at the mouth of the cannon.
 let displayBalloon: (SKSpriteNode, SKNode) -> Void = { balloon, cannon in
     balloon.position = cannon.childNode(withName: "mouth")!.convert(origin, to: scene!)
     scene?.addChild(balloon)
@@ -125,12 +151,15 @@ let displayBalloon: (SKSpriteNode, SKNode) -> Void = { balloon, cannon in
  
 */
 
+/// Applies an impulse based on the cannon’s rotation.
 let fireBalloon: (SKSpriteNode, SKNode) -> Void = { balloon, cannon in
     let impulseMagnitude: CGFloat = 70.0
     
     let xComponent = cos(cannon.zRotation) * impulseMagnitude
     let yComponent = sin(cannon.zRotation) * impulseMagnitude
     let impulseVector = CGVector(dx: xComponent, dy: yComponent)
+    
+//    print("💥 Balloon fired at \(xComponent.rounded(.down)), \(yComponent.rounded(.down))")
     
     balloon.physicsBody!.applyImpulse(impulseVector)
 }
@@ -148,6 +177,7 @@ To offer easy access to the cannon nodes, we named these nodes explicitly in Xco
  
 */
 
+// MARK: - Cannon Nodes
 
 let leftBalloonCannon = scene?.childNode(withName: "//left_cannon")!
 let rightBalloonCannon = scene?.childNode(withName: "//right_cannon")!
@@ -155,6 +185,8 @@ let rightBalloonCannon = scene?.childNode(withName: "//right_cannon")!
 /*:
 SpriteKit executes `SKAction` objects on nodes to change their position, rotation, scale—or in our case to wait (that is, do nothing for a specified amount of time). You can execute an action standalone, in a sequence, or in a group, and you can automatically repeat it an arbitrary number of times (or forever). But actions do not necessarily change a node’s properties—an action can simply be a block of code to be executed.
 */
+
+// MARK: - Cannon Firing Schedule
 
 let wait = SKAction.wait(forDuration: 1.0, withRange: 0.05)
 let pause = SKAction.wait(forDuration: 0.55, withRange: 0.05)
@@ -193,6 +225,11 @@ When two balloons collide, we want to make one of them explode. The explosion ef
  
 */
 
+/*:
+Increase `impulse` or remove `pause` to create absolute balloon mayhem!
+*/
+
+// MARK: - Balloon Pop Animation
 
 let balloonPop = (1...4).map {
     SKTexture(imageNamed: "explode_0\($0)")
@@ -206,6 +243,8 @@ let removeBalloonAction: SKAction = SKAction.sequence([
 /*:
 Even though collisions between physics bodies in a scene are automatically handled by SpriteKit, we must provide any logic that’s specific to our game. This includes defining which collisions should trigger contact notifications (contact testing). Earlier we ensured that all balloons are of the balloon category, but the ground is also a node and the category of a node defaults to all categories (`0xFFFFFFFF`).
 */
+
+// MARK: - Contact Handling
 
 let GroundCategory: UInt32 = 1 << 2
 let ground = scene?.childNode(withName: "//ground")!
@@ -222,14 +261,24 @@ Contact notifications are handled by the physics world’s contact delegate. Thi
  
 */
 
-class PhysicsContactDelegate: NSObject, SKPhysicsContactDelegate {
-    @MainActor func didBeginContact(contact: SKPhysicsContact) {
-        let categoryA = contact.bodyA.categoryBitMask
-        let categoryB = contact.bodyB.categoryBitMask
-        
-        if (categoryA & BalloonCategory != 0) && (categoryB & BalloonCategory != 0) {
-            contact.bodyA.node!.run(removeBalloonAction)
-        }
+/// Handles balloon-balloon collisions.
+class PhysicsContactDelegate: NSObject, @preconcurrency SKPhysicsContactDelegate {
+
+    // Swift 6 signature
+    @MainActor
+    internal func didBegin(_ contact: SKPhysicsContact) {
+        let maskA = contact.bodyA.categoryBitMask
+        let maskB = contact.bodyB.categoryBitMask
+
+        // Filter for balloon–balloon contacts only
+        guard maskA & BalloonCategory != 0,
+              maskB & BalloonCategory != 0 else { return }
+
+        // 🔊 Debug cue — this line goes to Xcode’s console
+        print("💥 Balloon popped at \(contact.contactPoint)")
+
+        // Run the pop animation on *one* of the two nodes
+        contact.bodyA.node?.run(removeBalloonAction)
     }
 }
 
