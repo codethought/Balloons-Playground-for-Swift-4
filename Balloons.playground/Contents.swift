@@ -16,7 +16,7 @@ import PlaygroundSupport
  
  - Note:
  \
- If you don’t see the Balloon scene, open the timeline editor by choosing View > Assistant Editor > Show Assistant Editor (or press Option-Command-Return).
+ If you don’t see the Balloon scene, open the timeline editor by choosing View > Assistant Editor > Show Assistant Editor (or press Option-Command-Return). Or using Editor | Live View
  
  Let's get started!
 ### Presenting the Scene in the Timeline
@@ -62,7 +62,7 @@ let images = [
 let textures: [SKTexture] = images.map { SKTexture(imageNamed: "balloon-\($0)") }
 
 var configureBalloonPhysics: ((_ balloon: SKSpriteNode) -> Void)?
-func createRandomBalloon() -> SKSpriteNode {
+@MainActor func createRandomBalloon() -> SKSpriteNode {
     let choice = Int(arc4random_uniform(UInt32(textures.count)))
     let balloon = SKSpriteNode(texture: textures[choice])
     configureBalloonPhysics?(balloon)
@@ -135,7 +135,7 @@ let fireBalloon: (SKSpriteNode, SKNode) -> Void = { balloon, cannon in
     balloon.physicsBody!.applyImpulse(impulseVector)
 }
 
-func fireCannon(cannon: SKNode) {
+@MainActor func fireCannon(cannon: SKNode) {
     let balloon = createRandomBalloon()
     
     displayBalloon(balloon, cannon)
@@ -223,7 +223,7 @@ Contact notifications are handled by the physics world’s contact delegate. Thi
 */
 
 class PhysicsContactDelegate: NSObject, SKPhysicsContactDelegate {
-    func didBeginContact(contact: SKPhysicsContact) {
+    @MainActor func didBeginContact(contact: SKPhysicsContact) {
         let categoryA = contact.bodyA.categoryBitMask
         let categoryB = contact.bodyB.categoryBitMask
         
